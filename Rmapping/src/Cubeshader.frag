@@ -17,7 +17,7 @@ float LinearizeDepth(float depth)
 
 void main()
 {
-    //float depth = LinearizeDepth(gl_FragCoord.z) / far;
+    gl_FragDepth = LinearizeDepth(gl_FragCoord.z) / far;
     //gl_FragDepth=depth;
     FragColor = vec4(1.0,0.1,0.1,1.0);//A value of 0.2 will return 20% of the first input color and 80% of the second input color
     //FragColor = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), 0.2);//A value of 0.2 will return 20% of the first input color and 80% of the second input color

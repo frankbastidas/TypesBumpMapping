@@ -35,7 +35,8 @@ vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir, out float parallaxHeight )
     // number of depth layers
     const float minLayers = 8;
     const float maxLayers = 32;
-    float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));  
+    //float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));  
+    float numLayers = 22;  
     // calculate the size of each layer
     float layerDepth = 1.0 / numLayers;
     // depth of current layer
@@ -178,13 +179,14 @@ void main()
     if(texCoords.x > 1.0 || texCoords.y > 1.0 || texCoords.x < 0.0 || texCoords.y < 0.0)
         discard;
 
+    vec2 distT=abs(fs_in.TexCoords - texCoords);
+    float dist2= dot(distT,distT)/2.0;
+    float Cdepth=sqrt(dist2 * dist2 + parallaxHeight * parallaxHeight) * 0.005;
     vec3 lightDir = normalize(fs_in.TangentLightPos - fs_in.TangentFragPos);
     // get self-shadowing factor for elements of parallax
-    //float depth = LinearizeDepth(gl_FragCoord.z*1.03) / far;
+    gl_FragDepth = LinearizeDepth(gl_FragCoord.z+Cdepth) / far;
     //gl_FragDepth=depth;
     float shadowMultiplier = parallaxSoftShadowMultiplier(lightDir, texCoords, parallaxHeight - 0.05);
     FragColor = mappingLightingSh(texCoords, lightDir, viewDir, shadowMultiplier);
-    //FragColor = vec4(vec3(mappingLightingSh(texCoords, lightDir, viewDir, shadowMultiplier).w),1.0);
-    //FragColor = vec4(vec3(gl_FragCoord.z), 1.0);
-    //FragColor = vec4(vec3(depth), 1.0);
+
 }

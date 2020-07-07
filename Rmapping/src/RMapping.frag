@@ -10,11 +10,11 @@
 out vec4 FragColor;
 
 in VS_OUT {
-    vec3 FragPos;
+    vec3 eye_to_pos;   //eye_to_pos 
     vec2 TexCoords;
-    vec3 TangentLightPos;
-    vec3 TangentViewPos;
-    vec3 TangentFragPos;
+    vec3 to_light;   //to_light
+    vec3 to_eye;    //to_eye
+    vec3 position_tan;    //position_tan
 } fs_in;
 
 uniform sampler2D diffuseMap;
@@ -31,7 +31,7 @@ float binarySearch(vec2 A, vec2 B, float a, float b)
     for(int i = 0; i < BINARY_STEPS; i++)
     {
         depth = mix(a, b, 0.5);
-        float d = texture(depthMap, mix(A, B, depth)).a;
+        float d = texture(depthMap, mix(A, B, depth)).r;
 
         if(d > depth)
             a = depth;
@@ -53,7 +53,7 @@ float linearSearch(vec2 A, vec2 B)
     for(int i = 0; i < LINEAR_STEPS; i++)
     {
         t += 1.0 / LINEAR_STEPS;
-        float d = texture(depthMap, mix(A, B, t)).a;
+        float d = texture(depthMap, mix(A, B, t)).r;
         if(t > d) break;
     }
 
@@ -66,10 +66,19 @@ float fullSearch(vec2 A, vec2 B)
     return binarySearch(A, B, depth-(1.0 / LINEAR_STEPS), depth);
 }
 
+    const float near = 0.1;
+    const float far  = 100.0;
+float LinearizeDepth(float depth) 
+{
+    float z = depth * 2.0 - 1.0; // back to NDC 
+    return (2.0 * near * far) / (far + near - z * (far - near));	
+}
+
+
 void main()
 {   
     vec2 A = fs_in.TexCoords;
-    vec3 V = (fs_in.TangentViewPos / -fs_in.TangentViewPos.z) * heightScale; //vector from A to the exit point (B)
+    vec3 V = (fs_in.to_eye / -fs_in.to_eye.z) * heightScale; //vector from A to the exit point (B)
     vec2 B = A + V.xy;
 
     float depth = fullSearch(A, B);
@@ -79,8 +88,8 @@ void main()
 
     // correct light vector should go through from the point in the depth map,
     // P, to the light
-    vec3 P_tan = fs_in.TangentFragPos + (fs_in.TangentViewPos / -fs_in.TangentViewPos.z) * heightScale * depth;
-    vec3 p_to_light = (fs_in.TangentFragPos + fs_in.TangentLightPos) - P_tan;
+    vec3 P_tan = fs_in.position_tan + (fs_in.to_eye / -fs_in.to_eye.z) * heightScale * depth;
+    vec3 p_to_light = (fs_in.position_tan + fs_in.to_light) - P_tan;
 
     vec4 diffuse_col = texture(diffuseMap, P.xy);
     vec4 col = diffuse_col * vec4(0.1, 0.1, 0.1, 1.0);
@@ -104,13 +113,13 @@ void main()
         else
         {
             col += diffuse_col * n_dot_l;
-            vec3 H = normalize(p_to_light + fs_in.TangentViewPos);
+            vec3 H = normalize(p_to_light + fs_in.to_eye);
             col += vec4(0.5, 0.5, 0.5, 1.0) * pow(max(dot(norm,H),0.0), 64.0);
         }
 #else
         col += diffuse_col * n_dot_l;
 
-        vec3 H = normalize(p_to_light + to_eye);
+        vec3 H = normalize(p_to_light + fs_in.to_eye);
         col += vec4(0.5, 0.5, 0.5, 1.0) * pow(max(dot(norm,H),0.0), 64.0);
 #endif
     }
@@ -120,9 +129,7 @@ void main()
     // depth correct formula as described in the paper.
     // the near and far plane constants could be uniforms if they
     // need to vary.
-    const float near = 0.1;
-    const float far  = 1024.0;
-    float p_eye_z = fs_in.FragPos.z + normalize(fs_in.FragPos).z * heightScale * depth;
+    float p_eye_z = fs_in.eye_to_pos.z + normalize(fs_in.eye_to_pos).z * heightScale * depth;
     gl_FragDepth = ((-far / (far - near)) * p_eye_z + (-far * near / (far - near))) / -p_eye_z;
 #endif
 

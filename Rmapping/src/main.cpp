@@ -29,7 +29,7 @@ void renderScreen();
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
-float heightScale = 0.15;
+float heightScale = 0.0;
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -96,8 +96,8 @@ int main()
 
     // build and compile shaders
     // -------------------------
-    Shader shader("src/parallax_mapping.vert", "src/parallax_mapping.frag");
-    Shader Cubeshader("src/Cubeshader.vert", "src/Cubeshader.frag");
+    Shader shader("src/RMapping.vert", "src/RMapping.frag");
+    Shader Cubeshader("src/RMapping.vert", "src/RMapping.frag");
     Shader screenShader("src/shader_screen.vert", "src/shader_screen.frag");
 
     // load textures
@@ -115,6 +115,11 @@ int main()
     shader.setInt("diffuseMap", 0);
     shader.setInt("normalMap", 1);
     shader.setInt("depthMap", 2);
+
+    Cubeshader.use();
+    Cubeshader.setInt("diffuseMap", 0);
+    Cubeshader.setInt("normalMap", 1);
+    Cubeshader.setInt("depthMap", 2);
 
     screenShader.use();
     screenShader.setInt("screenTexture", 3);
@@ -157,11 +162,11 @@ int main()
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
-        /*
+        
         // change light position over time
         lightPos.x = sin(glfwGetTime()) * 1.0f;
         //lightPos.z = cos(glfwGetTime()) * 2.0f;
-        lightPos.y = 0.0 + cos(glfwGetTime()) * 1.0f;*/
+        lightPos.y = 0.0 + cos(glfwGetTime()) * 1.0f;
 
         // input
         // -----
@@ -196,6 +201,13 @@ int main()
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, heightMap);
         renderQuad();
+
+        //shader.use();
+        model = glm::mat4(1.0f);
+        model = glm::rotate(model, glm::radians(-40.0f), glm::normalize(glm::vec3(1.0, 0.0, 1.0))); // rotate the quad to show parallax mapping from multiple directions
+        model = glm::scale(model, glm::vec3(0.8f));
+        shader.setMat4("model", model);
+        renderCube();
         /*
         // render light source (simply re-renders a smaller plane at the light's position for debugging/visualization)
         model = glm::mat4(1.0f);
@@ -204,7 +216,8 @@ int main()
         shader.setMat4("model", model);
         renderQuad();*/        
         ///
-        Cubeshader.use();
+        
+        /*Cubeshader.use();
         Cubeshader.setMat4("projection", projection);
         Cubeshader.setMat4("view", view);
         model = glm::mat4(1.0f);
@@ -213,7 +226,7 @@ int main()
         Cubeshader.setMat4("model", model);
  
         //glClear(GL_DEPTH_BUFFER_BIT);
-        renderCube();
+        renderCube();*/
 
         // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
